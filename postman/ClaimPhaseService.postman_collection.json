@@ -1,0 +1,110 @@
+{
+  "info": {
+    "name": "Claim Phase Middleware API",
+    "description": "Get a JWT from /api/v1/auth/token, then call the phase lookup. The token is saved automatically into the {{accessToken}} collection variable.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://localhost:7297" },
+    { "key": "clientId", "value": "self-service-portal" },
+    { "key": "clientSecret", "value": "portal-dev-secret" },
+    { "key": "accessToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Get token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('accessToken', body.accessToken);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"clientSecret\": \"{{clientSecret}}\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/auth/token", "host": [ "{{baseUrl}}" ], "path": [ "api", "v1", "auth", "token" ] }
+      }
+    },
+    {
+      "name": "2. Current phase - OPEN (CTRL-2024-0000001)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('phase is OPEN', () => pm.expect(pm.response.json().phaseCode).to.eql('OPEN'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/claims/CTRL-2024-0000001/current-phase", "host": [ "{{baseUrl}}" ], "path": [ "api", "v1", "claims", "CTRL-2024-0000001", "current-phase" ] }
+      }
+    },
+    {
+      "name": "3. Current phase - APPEAL (CTRL-2024-0000002)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/claims/CTRL-2024-0000002/current-phase", "host": [ "{{baseUrl}}" ], "path": [ "api", "v1", "claims", "CTRL-2024-0000002", "current-phase" ] }
+      }
+    },
+    {
+      "name": "4. Not disclosable - expect 404 (CTRL-2024-0000004)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [ "pm.test('status is 404', () => pm.response.to.have.status(404));" ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/claims/CTRL-2024-0000004/current-phase", "host": [ "{{baseUrl}}" ], "path": [ "api", "v1", "claims", "CTRL-2024-0000004", "current-phase" ] }
+      }
+    },
+    {
+      "name": "5. No token - expect 401",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [ "pm.test('status is 401', () => pm.response.to.have.status(401));" ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/v1/claims/CTRL-2024-0000001/current-phase", "host": [ "{{baseUrl}}" ], "path": [ "api", "v1", "claims", "CTRL-2024-0000001", "current-phase" ] }
+      }
+    },
+    {
+      "name": "6. Health check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/health", "host": [ "{{baseUrl}}" ], "path": [ "health" ] }
+      }
+    }
+  ]
+}
